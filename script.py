@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load Hugging Face API token from environment variables
-hf_token = os.getenv("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")
+hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 if not hf_token:
     raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in Render.")
