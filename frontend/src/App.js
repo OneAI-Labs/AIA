@@ -40,7 +40,7 @@ const Chat = () => {
     setInput("");
 
     try {
-      const response = await axios.post("https://aia-backend-vqxy.onrender.com", {
+      const response = await axios.post("https://aia-backend-vqxy.onrender.com/chat", {
         message: input,
       });
       const aiMessage = { sender: "ai", text: response.data.reply };
