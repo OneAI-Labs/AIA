@@ -18,11 +18,12 @@ def chat():
     user_message = data["message"]
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Change to the correct model you're using
+        client = openai.OpenAI()  # Create an OpenAI client instance
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Change this to your preferred model (e.g., gpt-4)
             messages=[{"role": "user", "content": user_message}]
         )
-        ai_response = response["choices"][0]["message"]["content"]
+        ai_response = response.choices[0].message.content  # Extract AI's reply
     except Exception as e:
         return jsonify({"error": f"Error calling OpenAI API: {str(e)}"}), 500
 
@@ -30,4 +31,5 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
