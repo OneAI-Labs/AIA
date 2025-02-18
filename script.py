@@ -2,14 +2,26 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Load Llama 3.2 Model & Tokenizer
+# Load Hugging Face API token from environment variables
+hf_token = os.getenv("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")
+
+if not hf_token:
+    raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in Render.")
+
+# Load Llama 3.2 Model & Tokenizer with authentication
 MODEL_NAME = "meta-llama/Meta-Llama-3-2-3B"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, device_map="auto")
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL_NAME, 
+    token=hf_token, 
+    torch_dtype=torch.float16, 
+    device_map="auto"
+)
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -20,8 +32,9 @@ def chat():
         if not user_message:
             return jsonify({"error": "Invalid request"}), 400
 
-        # Tokenize input
-        input_ids = tokenizer(user_message, return_tensors="pt").input_ids.to("cuda")
+        # Move input to correct device (CPU/GPU)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        input_ids = tokenizer(user_message, return_tensors="pt").input_ids.to(device)
 
         # Generate response
         output = model.generate(input_ids, max_length=100)
@@ -34,6 +47,3 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
