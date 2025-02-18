@@ -1,35 +1,39 @@
-import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
 app = Flask(__name__)
 CORS(app)
 
-# Load OpenAI API key from environment variable
-openai.api_key = os.getenv("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")
+# Load Llama 3.2 Model & Tokenizer
+MODEL_NAME = "meta-llama/Meta-Llama-3-2-3B"
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.float16, device_map="auto")
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
-    if not data or "message" not in data:
-        return jsonify({"error": "Invalid request"}), 400
-
-    user_message = data["message"]
-
     try:
-        client = openai.OpenAI()  # Create an OpenAI client instance
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # Change this to your preferred model (e.g., gpt-4)
-            messages=[{"role": "user", "content": user_message}]
-        )
-        ai_response = response.choices[0].message.content  # Extract AI's reply
-    except Exception as e:
-        return jsonify({"error": f"Error calling OpenAI API: {str(e)}"}), 500
+        data = request.json
+        user_message = data.get("message", "")
 
-    return jsonify({"reply": ai_response})
+        if not user_message:
+            return jsonify({"error": "Invalid request"}), 400
+
+        # Tokenize input
+        input_ids = tokenizer(user_message, return_tensors="pt").input_ids.to("cuda")
+
+        # Generate response
+        output = model.generate(input_ids, max_length=100)
+        response = tokenizer.decode(output[0], skip_special_tokens=True)
+
+        return jsonify({"reply": response})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
 
