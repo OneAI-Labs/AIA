@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify 
 from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
@@ -14,7 +14,7 @@ if not hf_token:
     raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in Render.")
 
 # Load Llama 3.2 Model & Tokenizer with authentication
-MODEL_NAME = "MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
+MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME, 
@@ -46,4 +46,4 @@ def chat():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
