@@ -14,7 +14,7 @@ if not hf_token:
     raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in Render.")
 
 # Load Llama 3.2 Model & Tokenizer with authentication
-MODEL_NAME = "meta-llama/Meta-Llama-3-2-3B"
+MODEL_NAME = "MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME, 
