@@ -51,11 +51,18 @@ def chat():
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
-        input_ids = tokenizer(user_message, return_tensors="pt").input_ids.to(device)
+        # Tokenize input with attention mask
+        encoded_input = tokenizer(user_message, return_tensors="pt", padding=True, truncation=True).to(device)
 
-        # Generate response with timeout
+        # Generate response with proper attention mask
         with torch.no_grad():
-            output = model.generate(input_ids, max_length=100, do_sample=True, temperature=0.7)
+            output = model.generate(
+                input_ids=encoded_input["input_ids"],
+                attention_mask=encoded_input["attention_mask"],  # ✅ Fix for unexpected behavior
+                max_length=100,
+                do_sample=True,
+                temperature=0.7
+            )
 
         response = tokenizer.decode(output[0], skip_special_tokens=True)
 
