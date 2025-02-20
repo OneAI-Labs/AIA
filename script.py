@@ -18,6 +18,8 @@ MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
 
 try:
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=hf_token)
+    tokenizer.pad_token = tokenizer.eos_token  # ✅ Set PAD token to EOS token
+
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME, 
         token=hf_token, 
@@ -51,15 +53,21 @@ def chat():
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
-        # Tokenize input with attention mask
-        encoded_input = tokenizer(user_message, return_tensors="pt", padding=True, truncation=True).to(device)
+        # Tokenize input with attention mask & padding
+        encoded_input = tokenizer(
+            user_message, 
+            return_tensors="pt", 
+            padding=True, 
+            truncation=True, 
+            max_length=512  # ✅ Prevents excessive input length
+        ).to(device)
 
-        # Generate response with proper attention mask
+        # Generate response with attention mask
         with torch.no_grad():
             output = model.generate(
                 input_ids=encoded_input["input_ids"],
-                attention_mask=encoded_input["attention_mask"],  # ✅ Fix for unexpected behavior
-                max_length=100,
+                attention_mask=encoded_input["attention_mask"],  # ✅ Fix unexpected behavior
+                max_length=150,
                 do_sample=True,
                 temperature=0.7
             )
