@@ -107,5 +107,25 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ New Route for Storing User Feedback
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    try:
+        data = request.json
+        chat_id = data.get("chat_id")
+        rating = data.get("rating")  # 👍 2 (good) / ➖ 1 (neutral) / 👎 0 (bad)
+
+        if not chat_id or rating not in [0, 1, 2]:
+            return jsonify({"error": "Invalid request. Provide 'chat_id' and 'rating' (0, 1, or 2)."}), 400
+
+        # ✅ Store feedback in Firestore
+        chat_doc = chat_collection.document(chat_id)
+        chat_doc.update({"user_feedback": rating})
+
+        return jsonify({"message": "Feedback saved successfully!"})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
