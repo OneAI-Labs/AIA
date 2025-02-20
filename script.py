@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify 
 from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
@@ -31,11 +31,12 @@ except Exception as e:
     print(f"⚠️ Error loading model: {e}")
     model = None  # Prevent the server from crashing
 
-# ✅ New API Status Route
-@app.route("/")
+# ✅ API Status Route
+@app.route("/", methods=["GET"])
 def home():
     return jsonify({"status": "API is running!"}), 200
 
+# ✅ Chat Route
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -43,8 +44,10 @@ def chat():
             return jsonify({"error": "Model failed to load."}), 500
 
         data = request.json
-        user_message = data.get("message", "").strip()
+        if not data or "message" not in data:
+            return jsonify({"error": "Invalid request. Missing 'message' field."}), 400
 
+        user_message = data["message"].strip()
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
@@ -63,3 +66,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
+
