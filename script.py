@@ -98,16 +98,16 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ New Route for Storing User Feedback
+# ✅ New Route for Storing User Feedback (Improved 3-option rating system)
 @app.route("/feedback", methods=["POST"])
 def feedback():
     try:
         data = request.json
         chat_id = data.get("chat_id")
-        rating = data.get("rating")  # 👍 1 (good) / 👎 0 (bad)
+        rating = data.get("rating")  # 👍 1 (good) / 👎 0 (bad) / ➖ 2 (neutral - no improvement)
 
-        if not chat_id or rating not in [0, 1]:
-            return jsonify({"error": "Invalid request. Provide 'chat_id' and 'rating' (0 or 1)."}), 400
+        if not chat_id or rating not in [0, 1, 2]:
+            return jsonify({"error": "Invalid request. Provide 'chat_id' and 'rating' (0, 1, or 2)."}), 400
 
         # ✅ Store feedback in Firestore
         chat_doc = chat_collection.document(chat_id)
