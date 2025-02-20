@@ -64,58 +64,45 @@ def chat():
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
-        # ✅ Tokenize input properly (without system prompt)
+        # ✅ New System Prompt (More Conversational)
+        system_prompt = (
+            "You are a helpful and engaging AI assistant. Respond naturally and conversationally to user messages. "
+            "Avoid sounding robotic. Use a friendly and casual tone."
+        )
+
+        formatted_prompt = f"{system_prompt}\n\nUser: {user_message}\nAI:"
+
         encoded_input = tokenizer(
-            user_message, 
+            formatted_prompt, 
             return_tensors="pt", 
             padding=True, 
             truncation=True, 
             max_length=256
         ).to(device)
 
-        # ✅ Improved Generation Settings
+        # ✅ Adjusted Generation Parameters for Conversational Flow
         with torch.no_grad():
             output = model.generate(
                 input_ids=encoded_input["input_ids"],
                 attention_mask=encoded_input["attention_mask"],
                 max_length=100,  
                 do_sample=True,
-                temperature=0.5,  
-                top_p=0.9,  
+                temperature=0.8,  # ⬆️ More randomness for natural replies
+                top_p=0.95,  # ⬆️ Keep responses more varied
+                repetition_penalty=1.2,  # ⬇️ Reduce repetition
                 early_stopping=True
             )
 
-        # ✅ Clean up AI response
         response_text = tokenizer.decode(output[0], skip_special_tokens=True).strip()
 
-        # ✅ Remove unwanted prefixes (system prompt echoes)
-        if "User:" in response_text or "AI:" in response_text:
+        # ✅ Remove unwanted AI role echoes
+        if "AI:" in response_text:
             response_text = response_text.split("AI:")[-1].strip()
 
         # ✅ Store AI response in Firestore
         chat_doc.update({"ai_response": response_text})
 
         return jsonify({"reply": response_text, "chat_id": chat_doc.id})  
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# ✅ Feedback Route (Improved Rating System)
-@app.route("/feedback", methods=["POST"])
-def feedback():
-    try:
-        data = request.json
-        chat_id = data.get("chat_id")
-        rating = data.get("rating")  # 👍 2 (good) / ➖ 1 (neutral) / 👎 0 (bad)
-
-        if not chat_id or rating not in [0, 1, 2]:
-            return jsonify({"error": "Invalid request. Provide 'chat_id' and 'rating' (0, 1, or 2)."}), 400
-
-        # ✅ Store feedback in Firestore
-        chat_doc = chat_collection.document(chat_id)
-        chat_doc.update({"user_feedback": rating})
-
-        return jsonify({"message": "Feedback saved successfully!"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
