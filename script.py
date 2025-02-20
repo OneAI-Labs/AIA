@@ -11,7 +11,7 @@ CORS(app)
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 
 if not hf_token:
-    raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in Render.")
+    raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in your environment.")
 
 # Load Llama 3.2 Model & Tokenizer with authentication
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
@@ -25,21 +25,29 @@ try:
         device_map="auto"
     )
     model.eval()  # Set the model to evaluation mode
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 except Exception as e:
-    raise RuntimeError(f"Failed to load model: {e}")
+    print(f"⚠️ Error loading model: {e}")
+    model = None  # Prevent the server from crashing
+
+# ✅ New API Status Route
+@app.route("/")
+def home():
+    return jsonify({"status": "API is running!"}), 200
 
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
+        if model is None:
+            return jsonify({"error": "Model failed to load."}), 500
+
         data = request.json
         user_message = data.get("message", "").strip()
 
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
-        # Move input to the correct device
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        model.to(device)
         input_ids = tokenizer(user_message, return_tensors="pt").input_ids.to(device)
 
         # Generate response with timeout
