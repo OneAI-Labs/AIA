@@ -38,7 +38,7 @@ except Exception as e:
 def home():
     return jsonify({"status": "API is running!"}), 200
 
-# ✅ Chat Route
+# ✅ Chat Route with Improved Prompting
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -53,9 +53,16 @@ def chat():
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
+        # ✅ Structuring the prompt for better context
+        system_prompt = (
+            "You are an AI assistant. Provide clear, helpful responses to user questions.\n"
+            "User: " + user_message + "\n"
+            "AI:"
+        )
+
         # Tokenize input with attention mask & padding
         encoded_input = tokenizer(
-            user_message, 
+            system_prompt, 
             return_tensors="pt", 
             padding=True, 
             truncation=True, 
@@ -70,17 +77,18 @@ def chat():
                 max_length=100,  # ✅ Limit response length
                 do_sample=True,
                 temperature=0.7,
-                top_p=0.9,  # ✅ Better sampling control
+                top_p=0.8,  # ✅ Better response control
                 early_stopping=True  # ✅ Stops when response is complete
             )
 
         response = tokenizer.decode(output[0], skip_special_tokens=True)
 
-        return jsonify({"reply": response})
+        return jsonify({"reply": response.strip()})  # ✅ Trim whitespace for clean output
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+
 
