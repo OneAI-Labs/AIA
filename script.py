@@ -85,6 +85,7 @@ def chat():
                 do_sample=True,
                 temperature=0.5,  
                 top_p=0.9,  
+                num_beams=3,  # ✅ Use beam search for better responses
                 early_stopping=True
             )
 
