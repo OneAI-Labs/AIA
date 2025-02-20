@@ -3,6 +3,7 @@ from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import os
+from google.cloud import firestore  # ✅ Firestore for data storage
 
 app = Flask(__name__)
 CORS(app)
@@ -11,6 +12,10 @@ CORS(app)
 hf_token = os.getenv("HUGGINGFACE_TOKEN")
 if not hf_token:
     raise ValueError("Hugging Face API token is missing. Please set HUGGINGFACE_TOKEN in your environment.")
+
+# ✅ Initialize Firestore
+db = firestore.Client()
+chat_collection = db.collection("chat_history")
 
 # Load Llama Model & Tokenizer
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
@@ -37,7 +42,7 @@ except Exception as e:
 def home():
     return jsonify({"status": "API is running!"}), 200
 
-# ✅ Chat Route - Improved Prompt Engineering
+# ✅ Chat Route - Store Conversations in Firestore
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -52,11 +57,17 @@ def chat():
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
-        # ✅ New Prompt Engineering
+        # ✅ Store user input in Firestore
+        chat_doc = chat_collection.document()
+        chat_doc.set({
+            "user_message": user_message,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
+
+        # Tokenize input properly
         system_prompt = "You are an AI assistant. Respond concisely and directly to user messages."
         formatted_prompt = f"{system_prompt}\n\nUser: {user_message}\nAI:"
 
-        # Tokenize input properly
         encoded_input = tokenizer(
             formatted_prompt, 
             return_tensors="pt", 
@@ -72,16 +83,15 @@ def chat():
                 attention_mask=encoded_input["attention_mask"],
                 max_length=100,  
                 do_sample=True,
-                temperature=0.5,  # 🔥 Lower temp to reduce randomness
-                top_p=0.9,  # ✅ Control output diversity
+                temperature=0.5,  
+                top_p=0.9,  
                 early_stopping=True
             )
 
         response_text = tokenizer.decode(output[0], skip_special_tokens=True)
 
-        # ✅ Trim Response to Avoid Repetition
-        if "AI:" in response_text:
-            response_text = response_text.split("AI:")[-1].strip()
+        # ✅ Store AI response in Firestore
+        chat_doc.update({"ai_response": response_text})
 
         return jsonify({"reply": response_text})  
 
@@ -90,3 +100,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+
