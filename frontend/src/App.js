@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaPaperPlane } from "react-icons/fa";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaPaperPlane, FaArrowLeft } from "react-icons/fa";
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -9,8 +8,10 @@ const Chat = () => {
   const [showChat, setShowChat] = useState(false);
   const [welcomeText, setWelcomeText] = useState("");
   const [promptText, setPromptText] = useState("");
+
   const fullText = "Welcome to the future of AI";
-  const promptFullText = "Press Enter to Begin";
+  const promptFullText = "Press enter to begin";
+  const API_URL = "http://34.56.213.136:5000/chat"; // ✅ Updated API URL
 
   useEffect(() => {
     let i = 0;
@@ -40,14 +41,15 @@ const Chat = () => {
     setInput("");
 
     try {
-      const response = await axios.post("https://aia-backend-vqxy.onrender.com/chat", {
-        message: input,
-      });
+      const response = await axios.post(API_URL, { message: input });
       const aiMessage = { sender: "ai", text: response.data.reply };
       setMessages((prevMessages) => [...prevMessages, aiMessage]);
     } catch (error) {
-      console.error("Error fetching AI response:", error);
-      const errorMessage = { sender: "ai", text: "Sorry, there was an error processing your request." };
+      console.error("Error:", error);
+      const errorMessage = {
+        sender: "ai",
+        text: "⚠️ Unable to reach AI server. Please try again later.",
+      };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
     }
   };
@@ -64,12 +66,18 @@ const Chat = () => {
 
   if (!showChat) {
     return (
-      <div className="flex flex-col h-screen bg-black items-center justify-center relative w-full text-center" onKeyDown={handleKeyDown} tabIndex={0}>
+      <div
+        className="flex flex-col h-screen bg-black items-center justify-center relative w-full text-center"
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+      >
         <div className="text-blue-400 text-5xl mb-4 font-bold">AI-A</div>
         <div className="bg-gradient-to-b from-blue-400 to-black w-60 h-60 rounded-full shadow-lg mb-4"></div>
         <div className="text-white text-lg">{welcomeText}</div>
         <div className="text-gray-400 text-sm mt-2">{promptText}</div>
-        <div className="absolute bottom-5 text-gray-500 text-xs">Developed by Jacob Davis</div>
+        <div className="absolute bottom-5 text-gray-500 text-xs">
+          Developed by OneAI
+        </div>
       </div>
     );
   }
@@ -80,7 +88,7 @@ const Chat = () => {
         <FaArrowLeft />
       </button>
       <div className="bg-gradient-to-b from-blue-400 to-black w-40 h-40 rounded-full shadow-lg mb-10"></div>
-      
+
       <div className="absolute top-24 w-full max-w-2xl px-4 space-y-2 overflow-y-auto max-h-80 flex flex-col items-end">
         {messages.map((msg, index) => (
           <div
@@ -117,4 +125,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
