@@ -64,12 +64,9 @@ def chat():
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
-        # Tokenize input properly
-        system_prompt = "You are an AI assistant. Respond concisely and directly to user messages."
-        formatted_prompt = f"{system_prompt}\n\nUser: {user_message}\nAI:"
-
+        # ✅ Tokenize input properly (without system prompt)
         encoded_input = tokenizer(
-            formatted_prompt, 
+            user_message, 
             return_tensors="pt", 
             padding=True, 
             truncation=True, 
@@ -88,7 +85,12 @@ def chat():
                 early_stopping=True
             )
 
-        response_text = tokenizer.decode(output[0], skip_special_tokens=True)
+        # ✅ Clean up AI response
+        response_text = tokenizer.decode(output[0], skip_special_tokens=True).strip()
+
+        # ✅ Remove unwanted prefixes (system prompt echoes)
+        if "User:" in response_text or "AI:" in response_text:
+            response_text = response_text.split("AI:")[-1].strip()
 
         # ✅ Store AI response in Firestore
         chat_doc.update({"ai_response": response_text})
@@ -98,13 +100,13 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ New Route for Storing User Feedback (Improved 3-option rating system)
+# ✅ Feedback Route (Improved Rating System)
 @app.route("/feedback", methods=["POST"])
 def feedback():
     try:
         data = request.json
         chat_id = data.get("chat_id")
-        rating = data.get("rating")  # 👍 1 (good) / 👎 0 (bad) / ➖ 2 (neutral - no improvement)
+        rating = data.get("rating")  # 👍 2 (good) / ➖ 1 (neutral) / 👎 0 (bad)
 
         if not chat_id or rating not in [0, 1, 2]:
             return jsonify({"error": "Invalid request. Provide 'chat_id' and 'rating' (0, 1, or 2)."}), 400
@@ -120,5 +122,3 @@ def feedback():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
-
-
