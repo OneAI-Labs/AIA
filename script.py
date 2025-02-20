@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify 
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
@@ -31,7 +31,7 @@ try:
     model.to(device)
 except Exception as e:
     print(f"⚠️ Error loading model: {e}")
-    model = None  # Prevent the server from crashing
+    model = None  # Prevent server crash if model fails to load
 
 # ✅ API Status Route
 @app.route("/", methods=["GET"])
@@ -59,17 +59,19 @@ def chat():
             return_tensors="pt", 
             padding=True, 
             truncation=True, 
-            max_length=512  # ✅ Prevents excessive input length
+            max_length=256  # ✅ Prevents excessive input length
         ).to(device)
 
-        # Generate response with attention mask
+        # Generate response with optimized settings
         with torch.no_grad():
             output = model.generate(
                 input_ids=encoded_input["input_ids"],
-                attention_mask=encoded_input["attention_mask"],  # ✅ Fix unexpected behavior
-                max_length=150,
+                attention_mask=encoded_input["attention_mask"],
+                max_length=100,  # ✅ Limit response length
                 do_sample=True,
-                temperature=0.7
+                temperature=0.7,
+                top_p=0.9,  # ✅ Better sampling control
+                early_stopping=True  # ✅ Stops when response is complete
             )
 
         response = tokenizer.decode(output[0], skip_special_tokens=True)
@@ -80,5 +82,5 @@ def chat():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 
