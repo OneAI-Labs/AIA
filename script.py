@@ -64,7 +64,7 @@ def chat():
             "timestamp": firestore.SERVER_TIMESTAMP
         })
 
-        # ✅ New System Prompt (More Conversational)
+        # ✅ AI System Prompt (More Conversational)
         system_prompt = (
             "You are a helpful and engaging AI assistant. Respond naturally and conversationally to user messages. "
             "Avoid sounding robotic. Use a friendly and casual tone."
@@ -87,15 +87,15 @@ def chat():
                 attention_mask=encoded_input["attention_mask"],
                 max_length=100,  
                 do_sample=True,
-                temperature=0.8,  # ⬆️ More randomness for natural replies
-                top_p=0.95,  # ⬆️ Keep responses more varied
-                repetition_penalty=1.2,  # ⬇️ Reduce repetition
+                temperature=0.8,  
+                top_p=0.95,  
+                repetition_penalty=1.2,  
                 early_stopping=True
             )
 
         response_text = tokenizer.decode(output[0], skip_special_tokens=True).strip()
 
-        # ✅ Remove unwanted AI role echoes
+        # ✅ Clean AI response
         if "AI:" in response_text:
             response_text = response_text.split("AI:")[-1].strip()
 
@@ -103,6 +103,28 @@ def chat():
         chat_doc.update({"ai_response": response_text})
 
         return jsonify({"reply": response_text, "chat_id": chat_doc.id})  
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ✅ Fetch Past Chats Route for Frontend
+@app.route("/chat-history", methods=["GET"])
+def chat_history():
+    try:
+        # Fetch last 20 messages
+        chats = chat_collection.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(20).stream()
+
+        history = []
+        for chat in chats:
+            chat_data = chat.to_dict()
+            history.append({
+                "chat_id": chat.id,
+                "user_message": chat_data.get("user_message", ""),
+                "ai_response": chat_data.get("ai_response", ""),
+                "timestamp": chat_data.get("timestamp")
+            })
+
+        return jsonify({"chat_history": history})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
