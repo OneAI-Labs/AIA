@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaPaperPlane, FaArrowLeft } from "react-icons/fa";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 
 const API_URL = "http://34.56.213.136:5000"; // ✅ Backend API URL
 
@@ -11,6 +12,7 @@ const Chat = () => {
   const [welcomeText, setWelcomeText] = useState("");
   const [promptText, setPromptText] = useState("");
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
 
   const fullText = "Welcome to the future of AI";
   const promptFullText = "Press enter to begin";
@@ -40,13 +42,15 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const fetchChatHistory = async () => {
     try {
       const response = await axios.get(`${API_URL}/chat-history`);
-      setMessages(response.data.history);
+      setMessages(response.data.history || []);
     } catch (error) {
       console.error("Error fetching chat history:", error);
     }
@@ -91,6 +95,12 @@ const Chat = () => {
         <div className="bg-gradient-to-b from-blue-400 to-black w-60 h-60 rounded-full shadow-lg mb-4"></div>
         <div className="text-white text-lg">{welcomeText}</div>
         <div className="text-gray-400 text-sm mt-2">{promptText}</div>
+        <button
+          className="absolute top-5 right-5 bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={() => navigate("/login")}
+        >
+          Login
+        </button>
         <div className="absolute bottom-5 text-gray-500 text-xs">Developed by OneAI</div>
       </div>
     );
@@ -100,6 +110,12 @@ const Chat = () => {
     <div className="flex flex-col h-screen bg-black w-full px-4 py-6">
       <button onClick={() => setShowChat(false)} className="absolute top-5 left-5 text-white text-lg">
         <FaArrowLeft />
+      </button>
+      <button
+        className="absolute top-5 right-5 bg-blue-500 text-white px-4 py-2 rounded"
+        onClick={() => navigate("/login")}
+      >
+        Login
       </button>
       <div className="flex flex-col flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.map((msg, index) => (
@@ -129,4 +145,16 @@ const Chat = () => {
   );
 };
 
-export default Chat;
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Chat />} />
+        <Route path="/login" element={<div className="flex items-center justify-center h-screen text-white">Login Page</div>} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
+
