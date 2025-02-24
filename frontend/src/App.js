@@ -87,7 +87,7 @@ const Chat = () => {
   if (!showChat) {
     return (
       <div
-        className="flex flex-col h-screen bg-black items-center justify-center relative w-full text-center"
+        className="flex flex-col h-screen bg-black items-center justify-center relative w-full text-center overflow-hidden"
         onKeyDown={handleKeyDown}
         tabIndex={0}
       >
@@ -95,29 +95,25 @@ const Chat = () => {
         <div className="bg-gradient-to-b from-blue-400 to-black w-60 h-60 rounded-full shadow-lg mb-4"></div>
         <div className="text-white text-lg">{welcomeText}</div>
         <div className="text-gray-400 text-sm mt-2">{promptText}</div>
-        <button
-          className="absolute top-5 right-5 bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={() => navigate("/login")}
-        >
-          Login
-        </button>
+        {!showChat && (
+          <button
+            className="absolute top-5 right-5 bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </button>
+        )}
         <div className="absolute bottom-5 text-gray-500 text-xs">Developed by OneAI</div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-black w-full px-4 py-6">
+    <div className="flex flex-col h-screen bg-black w-full px-4 py-6 overflow-hidden">
       <button onClick={() => setShowChat(false)} className="absolute top-5 left-5 text-white text-lg">
         <FaArrowLeft />
       </button>
-      <button
-        className="absolute top-5 right-5 bg-blue-500 text-white px-4 py-2 rounded"
-        onClick={() => navigate("/login")}
-      >
-        Login
-      </button>
-      <div className="flex flex-col flex-1 overflow-y-auto space-y-4 pb-4">
+      <div className="flex flex-col flex-1 overflow-y-auto space-y-4 pb-4 chat-container">
         {messages.map((msg, index) => (
           <div
             key={index}
