@@ -57,27 +57,31 @@ def chat():
         if not user_message:
             return jsonify({"error": "Message cannot be empty"}), 400
 
-        # ✅ Store user input in Firestore
-        chat_doc = chat_collection.document()
-        chat_doc.set({
-            "user_message": user_message,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
+        # ✅ Fetch Last 3 Messages from Firestore (Memory)
+        past_chats = chat_collection.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(3).stream()
+        chat_history = "\n".join([
+            f"User: {chat.to_dict().get('user_message', '')}\nAI: {chat.to_dict().get('ai_response', '')}"
+            for chat in past_chats
+        ])
 
         # ✅ AI System Prompt (More Conversational)
         system_prompt = (
-            "You are a helpful and engaging AI assistant. Respond naturally and conversationally to user messages. "
-            "Avoid sounding robotic. Use a friendly and casual tone."
+            "You are a highly intelligent and articulate AI assistant named AI-A, trained to engage in human-like conversations. "
+            "Your responses should be clear, thoughtful, and contextually relevant. "
+            "Maintain a friendly and conversational tone, and provide informative and engaging replies. "
+            "If the user greets you, respond naturally. If they ask a question, provide a helpful answer. "
+            "If the message is unclear, politely ask for clarification."
         )
 
-        formatted_prompt = f"{system_prompt}\n\nUser: {user_message}\nAI:"
+        # ✅ Combine Memory and User Message
+        formatted_prompt = f"{system_prompt}\n\n{chat_history}\nUser: {user_message}\nAI:"
 
         encoded_input = tokenizer(
             formatted_prompt, 
             return_tensors="pt", 
             padding=True, 
             truncation=True, 
-            max_length=256
+            max_length=512  # ✅ Increased length for better context
         ).to(device)
 
         # ✅ Adjusted Generation Parameters for Conversational Flow
@@ -85,11 +89,12 @@ def chat():
             output = model.generate(
                 input_ids=encoded_input["input_ids"],
                 attention_mask=encoded_input["attention_mask"],
-                max_length=100,  
+                max_length=150,  # ✅ Increased response length
                 do_sample=True,
-                temperature=0.8,  
-                top_p=0.95,  
-                repetition_penalty=1.2,  
+                temperature=0.7,  # ✅ Reduce randomness for better coherence
+                top_p=0.92,  # ✅ Keeps responses logical but varied
+                repetition_penalty=1.1,  # ✅ Reduce repeated words
+                num_return_sequences=1,  
                 early_stopping=True
             )
 
@@ -100,7 +105,12 @@ def chat():
             response_text = response_text.split("AI:")[-1].strip()
 
         # ✅ Store AI response in Firestore
-        chat_doc.update({"ai_response": response_text})
+        chat_doc = chat_collection.document()
+        chat_doc.set({
+            "user_message": user_message,
+            "ai_response": response_text,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        })
 
         return jsonify({"reply": response_text, "chat_id": chat_doc.id})  
 
@@ -111,7 +121,6 @@ def chat():
 @app.route("/chat-history", methods=["GET"])
 def chat_history():
     try:
-        # Fetch last 20 messages
         chats = chat_collection.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(20).stream()
 
         history = []
