@@ -1,40 +1,21 @@
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-import pickle
-import os
-import datetime
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# Define the required API scopes
-SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+# Path to service account credentials JSON
+CREDENTIALS_FILE = "credentials.json"  # Updated from firestore_credentials.json
 
-def authenticate_google_calendar():
-    creds = None
-    # Check if token.pickle exists (to store user session)
-    if os.path.exists("token.pickle"):
-        with open("token.pickle", "rb") as token:
-            creds = pickle.load(token)
-
-    # If no valid credentials, prompt user to log in
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "client_secret.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Save credentials for future use
-        with open("token.pickle", "wb") as token:
-            pickle.dump(creds, token)
-
-    return creds
-
-def create_calendar_event(summary, start_time, end_time):
-    """Creates a calendar event."""
-    creds = authenticate_google_calendar()
+# Authenticate and initialize the Google Calendar API
+def get_calendar_service():
+    creds = service_account.Credentials.from_service_account_file(
+        CREDENTIALS_FILE, scopes=["https://www.googleapis.com/auth/calendar"]
+    )
     service = build("calendar", "v3", credentials=creds)
+    return service
+
+# Function to create a calendar event
+def create_calendar_event(summary, start_time, end_time):
+    """Creates a Google Calendar event."""
+    service = get_calendar_service()
 
     event = {
         "summary": summary,
